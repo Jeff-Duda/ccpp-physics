@@ -111,6 +111,14 @@
   type = real
   kind = kind_phys
   intent = inout
+[comprefmax]
+  standard_name = maximum_composite_reflectivity_over_maximum_hourly_time_interval
+  long_name = maximum composite reflectivity over maximum hourly time interval
+  units = dBZ
+  dimensions = (horizontal_loop_extent)
+  type = real
+  kind = kind_phys
+  intent = inout
 [u10m]
   standard_name = x_wind_at_10m
   long_name = 10 meter u wind speed

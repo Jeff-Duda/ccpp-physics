@@ -31,7 +31,7 @@ contains
                                              gt0, refl_10cm, refdmax, refdmax263k, u10m, v10m,     &
                                              u10max, v10max, spd10max, pgr, t2m, q2m, t02max,      &
                                              t02min, rh02max, rh02min, dtp, rain, pratemax,        &
-                                             errmsg, errflg)
+                                             errmsg, errflg, comprefmax) ! jdduda
 
        ! Interface variables
        integer, intent(in) :: im, levs
@@ -58,12 +58,14 @@ contains
        real(kind_phys), intent(in   ) :: dtp
        real(kind_phys), intent(in   ) :: rain(im)
        real(kind_phys), intent(inout) :: pratemax(im)
+       real(kind_phys), intent(inout) :: comprefmax(:) ! jdduda
        character(len=*), intent(out)  :: errmsg
        integer, intent(out)           :: errflg
 
        ! Local variables
        real(kind_phys), dimension(:), allocatable :: refd, refd263k
        real(kind_phys) :: tem, pshltr, QCQ, rh02
+       real(kind_phys), dimension(:), allocatable :: compref ! jdduda
        integer :: i
 
        ! Initialize CCPP error handling variables
@@ -76,19 +78,24 @@ contains
             imp_physics == imp_physics_fer_hires)) then
           allocate(refd(im))
           allocate(refd263k(im))
-          call max_fields(phil,refl_10cm,con_g,im,levs,refd,gt0,refd263k)
+          allocate(compref(im)) ! jdduda
+          call max_fields(phil,refl_10cm,con_g,im,levs,refd,gt0,refd263k,compref)
+    !      compref = MAXVAL(refl_10cm,1) ! jdduda
           if (reset) then
              do i=1,im
                refdmax(i) = -35.
                refdmax263k(i) = -35.
+               comprefmax(i) = -35.
              enddo
           endif
           do i=1,im
              refdmax(i) = max(refdmax(i),refd(i))
              refdmax263k(i) = max(refdmax263k(i),refd263k(i))
+             comprefmax(i) = max(comprefmax(i),compref(i)) ! jdduda
           enddo
           deallocate (refd) 
           deallocate (refd263k)
+          deallocate (compref)
        endif
 !
        if (reset) then
@@ -129,7 +136,7 @@ contains
 
    end subroutine maximum_hourly_diagnostics_run
 
-   subroutine max_fields(phil,ref3D,grav,im,levs,refd,tk,refd263k)
+   subroutine max_fields(phil,ref3D,grav,im,levs,refd,tk,refd263k,maxzref)
       integer, intent(in)               :: im,levs
       real (kind=kind_phys), intent(in) :: grav
       real (kind=kind_phys), intent(in),dimension(:,:)  :: phil,ref3D,tk
@@ -137,7 +144,7 @@ contains
       real :: dbz1avg,zmidp1,zmidloc,refl,fact
       real, dimension(im,levs) :: z
       real, dimension(im) :: zintsfc
-      real, dimension(:), intent(inout) :: refd,refd263k
+      real, dimension(:), intent(inout) :: refd,refd263k,maxzref
       REAL :: dbz1(2),dbzk,dbzk1
       logical :: counter
       do i=1,im
@@ -157,6 +164,12 @@ contains
             endif
          enddo vloop
 
+! jdduda
+         maxzref(I) = -35.
+         do k=1,levs-1
+            if ( ref3D(i,k) >= maxzref(i)) maxzref(i) = ref3D(i,k)
+         enddo 
+! jdduda
 !!! Initial curefl value without reduction above freezing level
 !
 !         curefl=0.
